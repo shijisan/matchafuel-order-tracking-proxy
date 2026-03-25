@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-    const mailPieceId = await params.id;
+export async function GET(
+    req: NextRequest, 
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const mailPieceId = await params;
 
     try {
         const res = await fetch(`https://api.royalmail.net/mailpieces/v2/${mailPieceId}/events`, {
