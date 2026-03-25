@@ -4,7 +4,13 @@ export async function GET(
     req: NextRequest, 
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const mailPieceId = await params;
+    const {id: mailPieceId} = await params;
+
+    const origin = req.headers.get("origin") || "";
+    const allowedOrigins = ["https://matchafuel.com", "https://www.matchafuel.com"];
+    
+    // Check if the request is coming from your site
+    const isAllowed = allowedOrigins.includes(origin);
 
     try {
         const res = await fetch(`https://api.royalmail.net/mailpieces/v2/${mailPieceId}/events`, {
@@ -16,15 +22,33 @@ export async function GET(
             }
         });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            return NextResponse.json({ error: errorData }, { status: res.status });
+        const data = await res.json();
+
+        const response = NextResponse.json(data, { status: res.status });
+
+        if (isAllowed) {
+            response.headers.set("Access-Control-Allow-Origin", origin);
+            response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+            response.headers.set("Access-Control-Allow-Headers", "Content-Type, X-Accept-RMG-Terms");
         }
 
-        return NextResponse.json({ message: "Success", res }, { status: 200 });
+        return response;
+
 
     } catch (err) {
         return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 
+}
+
+export async function OPTIONS(request: NextRequest) {
+    const origin = request.headers.get("origin") || "";
+    return new NextResponse(null, {
+        status: 204,
+        headers: {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, X-Accept-RMG-Terms",
+        },
+    });
 }
